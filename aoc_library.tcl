@@ -330,3 +330,15 @@ proc hex2bin {hex} {
 proc sum_of_n {n} {
     return [expr {$n * ($n+1) / 2}]
 }
+
+# From https://rosettacode.org/wiki/Least_common_multiple#Tcl
+proc lcm {p q} {
+    set m [expr {$p * $q}]
+    if {!$m} {return 0}
+    while 1 {
+        set p [expr {$p % $q}]
+        if {!$p} {return [expr {$m / $q}]}
+        set q [expr {$q % $p}]
+        if {!$q} {return [expr {$m / $p}]}
+    }
+}
