@@ -48,11 +48,23 @@ foreach dir {E W N S} {
     }
 }
 
+# For visualizing the grid better:  https://www.w3.org/TR/xml-entity-names/025.html
+set unicode_map {
+    7 \U2510
+    F \U250C
+    J \U2518
+    L \U2514
+    - \U2500
+    | \U2502
+}
 
 puts "Step (1): Go $dir to: {$coord} = $char"
 
-set solved_grid [lrepeat $num_rows [lrepeat $num_cols .]]
 set num_steps 1
+
+set solved_grid [lrepeat $num_rows [lrepeat $num_cols .]]
+lset solved_grid {*}$coord [string map $unicode_map $char]
+
 while {1} {
     incr num_steps
 
@@ -60,7 +72,7 @@ while {1} {
     set next_coord [get_next_coordinate $coord $next_dir]
     set next_char  [lindex $grid {*}$next_coord]
     
-    lset solved_grid {*}$next_coord $next_char
+    lset solved_grid {*}$next_coord [string map $unicode_map $next_char]
 
     if {$next_char == "S"} {
         puts "Step ($num_steps):  Back at S."
@@ -74,9 +86,10 @@ while {1} {
 
 }
 
+# Super cool visualization
 print_grid $solved_grid 
-# Divide the total loop distance by 2 to get the part1 answer.
 
+# Divide the total loop distance by 2 to get the part1 answer.
 set max_distance [expr {$num_steps / 2}]
 
 puts "Part1 answer = $max_distance"
