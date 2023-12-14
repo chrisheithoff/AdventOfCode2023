@@ -4,7 +4,7 @@
 source ../aoc_library.tcl
 
 
-# Another link with a Day12 tutorial:
+# I didn't figure this how, but instead I followed this tutorial and translated Python carefully to Tcl.
 # https://www.reddit.com/r/adventofcode/comments/18hbbxe/2023_day_12python_stepbystep_tutorial_with_bonus/
 
 proc pound {} {
