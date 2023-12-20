@@ -342,3 +342,13 @@ proc lcm {p q} {
         if {!$q} {return [expr {$m / $p}]}
     }
 }
+
+proc enumerate {list "i 0"} {
+    set result [list]
+    foreach l $list {
+        lappend result $i $l
+        incr i
+    }
+    return $result
+}
+
