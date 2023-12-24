@@ -129,7 +129,7 @@ set from      [dict create]
 set visited   [dict create]
 
 # Keep unvisited states in a priority queue.
-#  {state_a 1 state_c 3 state_b 5}
+#  {"state_a 1" "state_c 3" "state_b 5"}
 set unvisited [list] 
 
 # Special conditions. The start state is the place where streak = 0
@@ -139,9 +139,10 @@ set end_loc        [list $max_r $max_c]
 dict set heat_loss $start_state 0
 dict set from      $start_state "start"
 set start_distance [distance_to_goal $start_loc $end_loc]
-lappend unvisited $start_state $start_distance
+lappend unvisited  [list $start_state $start_distance]
 
 set state $start_state
+set i 0
 while {1} {
     incr i
 
@@ -185,17 +186,22 @@ while {1} {
             continue
         }
 
-        # Add the next_state and its priorty to the unvisited prioriy queue.
-        set priority      [expr {$next_heat_loss + [distance_to_goal $next_loc $end_loc]}]
-        lappend unvisited $next_state $priority
+        # Add the next_state to the unvisited priority queue according to its distance to goal.
+        #   - use "lsearch -bisect"
+        set priority       [expr {$next_heat_loss + [distance_to_goal $next_loc $end_loc]}]
+        # lappend unvisited  [list $next_state $priority]
+        set insertion_spot [lsearch -index 1 -bisect $unvisited $priority]
+        set unvisited      [linsert $unvisited $insertion_spot [list $next_state $priority]]
     }
 
     # Step 5: Choose the first value in the sorted priority queue
-    set unvisited [lsort -index 1 -stride 2 -integer $unvisited]
-    set unvisited [lassign $unvisited state priority]
+    # set unvisited [lsort -integer -index 1 $unvisited]
+    set unvisited [lassign $unvisited first]
+    set state     [lindex $first 0]
 
 }
 print_path
+puts "Total iterations: $i"
 set part1_answer [dict get $heat_loss $state]
 puts "Part1 answer = $part1_answer"
 
