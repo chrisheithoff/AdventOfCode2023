@@ -8,29 +8,30 @@ source ../aoc_library.tcl
 #  - You can turn left, continue straight, or turn right.
 #  - You can't move in the same direction more than three times.
 
-# Use Dijkstra's algorithm (actually the A* variation)
-#   - each node of the graph is a state: {location direction streak}
+# Use Dijkstra's algorithm.
+#   - each node of the graph should be location, direction and streak.
 #
 # Initialize:  Start at top left with streak=0 and undefined direction  
-# state         heat_loss           from 
-# {0 0} E 0     0                   "start"
+# state            heat_loss    from 
+# 0,0,*,0          0            start
 # 
 # Step1: Mark the current state as visited.
 #
-# Step2: Get the possible next_states.  
-# {0 1} E 1
-# {1 0} S 1 
+# Step2: Get the possible next_states.  Mark these as unvisited.
+# 0,1,E,1 
+# 1,0,S,1 
 #
 # Step3: Record the total heat_loss if we were to visit that state.
-# state         heat_loss    from 
-# {0 0} * 0     0            "start"
-# {0 1} E 1     2            {0 0} E 0 
-# {1 0} S 1     3            {0 0} E 0 
+# state            heat_loss    from 
+# 0,0,*,0          0            start
+# 0,1,E,1          2            0,0,*,0
+# 1,0,S,1          3            0,0,*,0
 #
-# Step 4:  Add the new states to a priority queue.  Each state is sorted
-#  by "heat_loss + distance_to_goal" from low to high.  
-#
-# Step 5:  Pop the first state off the priority queue.
+# Step 4:  Choose the unvisited state with the minimum heat_loss:
+# state            heat_loss    from 
+# 0,0,*,0          0            start
+# 0,1,E,1          2            0,0,*,0  <--------- 
+# 1,0,S,1          3            0,0,*,0
 #
 # Go back to step 1.  Repeat until you're at the bottom right.
 
@@ -114,42 +115,28 @@ proc print_path {} {
     print_grid $grid_with_path
 }
 
-proc distance_to_goal {loc end_loc} {
-    lassign $loc x y 
-    lassign $end_loc end_x end_y
-    set distance [expr abs($x - $end_x) + abs($y - $end_y)]
-    return $distance
-}
-
-# Implement the table as two dictionaries with key = state. 
+# Implement the table as two dictionaries with key = state.
 set heat_loss [dict create]
 set from      [dict create]
-
-# Record each visited state in a dict.  key = state.   value doesn't matter.
 set visited   [dict create]
-
-# Keep unvisited states in a priority queue.
-#  {state_a 1 state_c 3 state_b 5}
-set unvisited [list] 
+set unvisited [dict create]
 
 # Special conditions. The start state is the place where streak = 0
-set start_loc      [list 0 0]
-set start_state    [list $start_loc E 0]
-set end_loc        [list $max_r $max_c]
+set start_state [list {0 0} E 0]
+set end_loc     [list $max_r $max_c]
 dict set heat_loss $start_state 0
 dict set from      $start_state "start"
-set start_distance [distance_to_goal $start_loc $end_loc]
-lappend unvisited $start_state $start_distance
 
 set state $start_state
 while {1} {
     incr i
 
-    set heat_loss_so_far [dict get $heat_loss $state]
-    puts "Visited state = $state ($heat_loss_so_far)"
+    set total_heat_loss [dict get $heat_loss $state]
+    puts "Visted state = $state ($total_heat_loss)"
 
     # Step 1:  Mark state as visited
     dict incr  visited   $state
+    dict unset unvisited $state
 
     # Are we there yet?
     lassign $state loc dir streak
@@ -157,45 +144,62 @@ while {1} {
         break
     }
 
-    # Step 2: Get the possible next states.
+
+    # Step 2: Get the possible next states and the total heat loss if we were to visit that state.
     set next_states     [get_next_states $state]
 
     # Step 3: Update the tables for the next states.
     foreach next_state $next_states {
         
-        # Skip if already visited that exact state.
+        # Skip if already visited or add to the unvisited dict. 
         if {[dict exists $visited $next_state]} {
             continue
+        } else {
+            dict incr unvisited $next_state
         }
 
-        # Figure out the total heat loss if we were to visit this state.
+        # Set the total heat loss if we were to visit this state.
         set next_loc         [lindex $next_state 0]
         set incr_heat_loss   [lindex $grid {*}$next_loc]
-        set next_heat_loss   [expr {$heat_loss_so_far + $incr_heat_loss}]
+        set next_heat_loss   [expr {$total_heat_loss + $incr_heat_loss}]
 
-        # Add a new state to the heat loss table (or replace with a better value)
         if {![dict exists $heat_loss $next_state]} {
             dict set heat_loss $next_state $next_heat_loss
             dict set from      $next_state $state
-        } elseif {$next_heat_loss < [dict get $heat_loss $state]} {
-            dict set heat_loss $next_state $next_heat_loss
-            dict set from      $next_state $state
         } else {
-            # skip
-            continue
+            set heat_loss_from_table [dict get $heat_loss $state]
+            if {$next_heat_loss < $heat_loss_from_table} {
+                dict set heat_loss $next_state $next_heat_loss
+                dict set from      $next_state $state
+            }
         }
-
-        # Add the next_state and its priorty to the unvisited prioriy queue.
-        set priority      [expr {$next_heat_loss + [distance_to_goal $next_loc $end_loc]}]
-        lappend unvisited $next_state $priority
     }
 
-    # Step 5: Choose the first value in the sorted priority queue
-    set unvisited [lsort -index 1 -stride 2 -integer $unvisited]
-    set unvisited [lassign $unvisited state priority]
+    # Step 4: Choose the next UNVISITED state with the one with minimum heat loss.
+    #         If multiple states share the minimum value, then chose the one with 
+    #         the biggest row+col score.
+    set min_heat    1000000000
+    set max_score   0 
+    foreach state [dict keys $unvisited] {
+        set heat [dict get $heat_loss $state]
+        if {$heat <= $min_heat} {
+            set min_heat   $heat
+
+            set score [expr [lindex $state 0 0] + [lindex $state 0 1]]
+            # puts "MIN: $min_heat , $score"
+            if {$score > $max_score} {
+                set max_score $score
+                # puts "MIN: $min_heat , $score (new max)"
+            } else {
+                # puts "MIN: $min_heat , $score"
+            }
+            set next_state $state
+        }            
+    }
+
+    set state $next_state
 
 }
 print_path
-set part1_answer [dict get $heat_loss $state]
-puts "Part1 answer = $part1_answer"
+puts "Part1 answer = $min_heat"
 
