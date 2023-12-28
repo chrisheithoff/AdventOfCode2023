@@ -117,7 +117,7 @@ proc print_path {} {
 proc distance_to_goal {loc end_loc} {
     lassign $loc x y 
     lassign $end_loc end_x end_y
-    set distance [expr abs($x - $end_x) + abs($y - $end_y)]
+    set distance [expr {abs($x - $end_x) + abs($y - $end_y)}]
     return $distance
 }
 
@@ -190,7 +190,7 @@ while {1} {
         #   - use "lsearch -bisect"
         set priority       [expr {$next_heat_loss + [distance_to_goal $next_loc $end_loc]}]
         # lappend unvisited  [list $next_state $priority]
-        set insertion_spot [lsearch -index 1 -bisect $unvisited $priority]
+        set insertion_spot [expr {[lsearch -index 1 -bisect -integer $unvisited $priority]+1}]
         set unvisited      [linsert $unvisited $insertion_spot [list $next_state $priority]]
     }
 
