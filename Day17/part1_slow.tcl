@@ -1,5 +1,5 @@
 # Advent of Code 2023.  
-# Day 16: Clumsy Crucible
+# Day 17: Clumsy Crucible
 # Part 1: Find path of minimal heat loss.
 source ../aoc_library.tcl
 
